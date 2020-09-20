@@ -222,10 +222,6 @@ Sua requisição passou pelo Envoy e foi roteada para o serviço correto (nossa 
 
 É possível também, através do Gloo, configurar um servidor externo de autenticação/autorização e escolher, através do Virtual Service, quais rotas serão autenticadas/autorizadas. Esse servidor é apenas uma API que para toda requisição que chega, retorna 200 caso a requisição esteja autenticada, e 403 caso contrário. É possível ser criativo aqui, e criar a autenticação/autorização conforme o necessário para sua aplicação. Essa funcionalidade é muito útil, visto que podemos garantir a autenticação para todas as APIs que estão atrás do Gloo com apenas um serviço comum. Sem utilizar o API Gateway, teríamos que cuidar disso para cada API separadamente, impondo retrabalho e possíveis falhas de segurança. Para mais informações sobre como configurar o serviço de autenticação, você pode acessar a documentação do Gloo [https://docs.solo.io/gloo/latest/guides/security/auth/custom_auth/].
 
+## Conclusão
 
-
-
-
-
-
-
+Através desse tutorial, esperamos fornecer uma aplicação do padrão API Gateway e mostrar seu valor para uma arquitetura de microsserviços. Por causa disso, não ensinamos todas as funcionalidades importantes do Gloo, como processamento de requisição, observabilidade e configuração de TLS, mas seguindo esse tutorial e a documentação do Gloo, você conseguirá explorar o Gloo com facilidade. 
