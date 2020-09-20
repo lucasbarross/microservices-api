@@ -1,6 +1,6 @@
-# Microsserviços com Gloo API Gateway e Kind
+# Microserviçós com Gloo API Gateway e Kind
 
-Nesse tutorial, iremos explorar algumas das funcionalidades do Gloo[https://docs.solo.io/gloo/latest], um API Gateway construído em cima do proxy Envoy[https://www.envoyproxy.io/]. Por ser um API Gateway, Gloo é bastante útil no contexto de microsserviços, pois é capaz de nos fornecer uma única entrada para todos os nossos serviços, melhorando a comunicação dos clientes aos serviços de várias formas[https://microservices.io/patterns/apigateway.html#resulting-context  ] e outras funcionalidades como rate limiting, circuit breaking, autenticação e autorização externa, transformação de requisição e resposta, e mais. 
+Nesse tutorial, iremos explorar algumas das funcionalidades do Gloo[https://docs.solo.io/gloo/latest], um API Gateway construído em cima do proxy Envoy[https://www.envoyproxy.io/]. Por ser um API Gateway, Gloo é bastante útil no contexto de microserviçós, pois é capaz de nos fornecer uma única entrada para todos os nossos serviços, melhorando a comunicação dos clientes aos serviços de várias formas[https://microservices.io/patterns/apigateway.html#resulting-context  ] e outras funcionalidades como rate limiting, circuit breaking, autenticação e autorização externa, transformação de requisição e resposta, e mais. 
 
 Como Gloo foi pensado para ser utilizado em um ambiente Kubernetes[https://kubernetes.io/], estaremos utilizando uma ferramenta chamada Kind[https://kind.sigs.k8s.io/] para simular esse ambiente na sua máquina local.
 
@@ -216,7 +216,7 @@ Isso deve retornar
 
 `{"id": 1, "price": "3200"}`                                                                                                                                                         
 
-Sua requisição passou pelo Envoy e foi roteada para o serviço correto (nossa travel-api). Para manter o escopo desse tutorial, não iremos instanciar outros serviços, mas é possível perceber como isso se aplicaria em um contexto real de microsserviços, onde vários serviços são utilizados para retornar informações para clientes, e através do Gloo, temos essa única porta de entrada, através do virtual service, que roteia nossos serviços. Isso tudo utilizando Service Discovery, evitando os malefícios de utilização de DNS em um ambiente efêmero como Kubernetes.
+Sua requisição passou pelo Envoy e foi roteada para o serviço correto (nossa travel-api). Para manter o escopo desse tutorial, não iremos instanciar outros serviços, mas é possível perceber como isso se aplicaria em um contexto real de microserviçós, onde vários serviços são utilizados para retornar informações para clientes, e através do Gloo, temos essa única porta de entrada, através do virtual service, que roteia nossos serviços. Isso tudo utilizando Service Discovery, evitando os malefícios de utilização de DNS em um ambiente efêmero como Kubernetes.
 
 ### Autenticação e autorização
 
@@ -224,4 +224,4 @@ Sua requisição passou pelo Envoy e foi roteada para o serviço correto (nossa 
 
 ## Conclusão
 
-Através desse tutorial, esperamos fornecer uma aplicação do padrão API Gateway e mostrar seu valor para uma arquitetura de microsserviços. Por causa disso, não ensinamos todas as funcionalidades importantes do Gloo, como processamento de requisição, observabilidade e configuração de TLS, mas seguindo esse tutorial e a documentação do Gloo, você conseguirá explorar o Gloo com facilidade. 
+Através desse tutorial, esperamos fornecer uma aplicação do padrão API Gateway e mostrar seu valor para uma arquitetura de microserviçós. Por causa disso, não ensinamos todas as funcionalidades importantes do Gloo, como processamento de requisição, observabilidade e configuração de TLS, mas seguindo esse tutorial e a documentação do Gloo, você conseguirá explorar o Gloo com facilidade. 
