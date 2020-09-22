@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: add-sub-api
+  name: add-sub-api
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: add-sub-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: add-sub-api
+    spec:
+      containers:
+      - image: zaulao/add-sub-api
+        name: add-sub-api
+        ports:
+        - containerPort: 5000
+          name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: add-sub-api
+  namespace: default
+  labels:
+    service: add-sub-api
+spec:
+  ports:
+  - port: 5000
+    protocol: TCP
+  selector:
+    app: add-sub-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: multiply-division-api
+  name: multiply-division-api
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: multiply-division-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: multiply-division-api
+    spec:
+      containers:
+      - image: zaulao/multiply-division-api
+        name: multiply-division-api
+        ports:
+        - containerPort: 5001
+          name: http-auth
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: multiply-division-api
+  namespace: default
+  labels:
+    service: multiply-division-api
+spec:
+  ports:
+  - port: 5001
+    protocol: TCP
+  selector:
+    app: multiply-division-api

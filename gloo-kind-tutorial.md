@@ -1,6 +1,6 @@
 # Microserviçós com Gloo API Gateway e Kind
 
-Nesse tutorial, iremos explorar algumas das funcionalidades do Gloo[https://docs.solo.io/gloo/latest], um API Gateway construído em cima do proxy Envoy[https://www.envoyproxy.io/]. Por ser um API Gateway, Gloo é bastante útil no contexto de microserviçós, pois é capaz de nos fornecer uma única entrada para todos os nossos serviços, melhorando a comunicação dos clientes aos serviços de várias formas[https://microservices.io/patterns/apigateway.html#resulting-context  ] e outras funcionalidades como rate limiting, circuit breaking, autenticação e autorização externa, transformação de requisição e resposta, e mais. 
+Nesse tutorial, iremos explorar algumas das funcionalidades do Gloo[https://docs.solo.io/gloo/latest], um API Gateway construído em cima do proxy Envoy[https://www.envoyproxy.io/]. Por ser um API Gateway, Gloo é bastante útil no contexto de microserviçós, pois é capaz de nos fornecer uma única entrada para todos os nossos serviços, melhorando a comunicação dos clientes aos serviços de várias formas[https://microservices.io/patterns/apigateway.html#resulting-context] e fornecendo outras funcionalidades como rate limiting, circuit breaking, autenticação e autorização, transformação de requisição e resposta, e mais. 
 
 Como Gloo foi pensado para ser utilizado em um ambiente Kubernetes[https://kubernetes.io/], estaremos utilizando uma ferramenta chamada Kind[https://kind.sigs.k8s.io/] para simular esse ambiente na sua máquina local.
 
@@ -100,82 +100,93 @@ Feito isso, você agora está com o Gloo instalado no cluster que você criou. O
 
 ## Explorando algumas das funcionalidades do Gloo
 
-Para começarmos a testar algumas das funcionalidades do Gloo, vamos subir um serviço básico de uma API de um site de viagens para servir de exemplo. Esse serviço possui o seguinte código:
+Para começarmos a testar algumas das funcionalidades do Gloo, vamos cometer *overengineering* para o bem do aprendizado e iremos criar uma calculadora que possui duas APIs: uma API chamada `add-sub-api` que provê as funcionalidades de adição e subtração, e outra API chamada `multiply-division-api`, que provê as funcionalidades de multiplicação e divisão.
 
-```python
-import http.server
-import socketserver
-import json 
+A `add-sub-api` provê as rotas `/add` e `/sub`, enquanto a `multiply-division-api` provê as rotas `/multiply` e `/divide`
 
-class Server(http.server.SimpleHTTPRequestHandler):
-    def do_GET(self):
-        path = self.path
-        print(path, flush = True)
-        if path.startswith("/api/travels/1"):
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(bytes(json.dumps({ 'id': 1, 'price': '3200' }).encode('utf-8')))
-        else:
-            self.send_response(404)
-            self.end_headers()
+Para ser possível instanciar essas APIs em nosso ambiente Kubernetes, precisamos criar uma imagem Docker para cada uma dessas APIs, que serão as imagens que rodarão em nossos pods dentro do Kubernetes. Para a simplicidade desse tutorial, iremos disponibilizar essas imagens aqui(https://hub.docker.com/r/zaulao/add-sub-api) e aqui (https://hub.docker.com/r/zaulao/multiply-division-api). Elas serão utilizadas abaixo.
 
-            
-def serve_forever(port):
-    print("Listening on " + str(port), flush = True)
-    socketserver.TCPServer(('', port), Server).serve_forever()
-
-if __name__ == "__main__":
-    serve_forever(8080)
-```
-
-O código acima instancia um servidor Python que ao ser acessado na rota `GET /api/travels/1` retorna `{ 'id': 1, 'price': '3200' }` como resposta. Caso seja acessado em uma outra rota, retorna o status de 404.
-
-Para ser possível instanciar esse código em nosso ambiente Kubernetes, precisamos criar uma imagem Docker, que será a imagem que rodará em nossos pods dentro do Kubernetes. Para a simplicidade desse tutorial, iremos disponibilizar uma imagem do serviço descrito acima[https://hub.docker.com/repository/docker/lucasbarross/travel-api].
-
-Para conseguirmos instanciar nosso serviço dentro do Kubernetes, precisamos definir um Deployment[https://kubernetes.io/docs/concepts/workloads/controllers/deployment/] e um Service[https://kubernetes.io/docs/concepts/services-networking/service/] para a aplicação. Isso pode ser feito criando um arquivo `configuration.yml` a seguir:
+Para conseguirmos instanciar nosso serviço dentro do Kubernetes, precisamos definir um Deployment[https://kubernetes.io/docs/concepts/workloads/controllers/deployment/] e um Service[https://kubernetes.io/docs/concepts/services-networking/service/] para cada API da aplicação. Isso pode ser feito criando um arquivo `configuration.yml` a seguir:
 
 ```yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: travel-api
-  name: travel-api
+    app: add-sub-api
+  name: add-sub-api
   namespace: default
 spec:
   selector:
     matchLabels:
-      app: travel-api
+      app: add-sub-api
   replicas: 1
   template:
     metadata:
       labels:
-        app: travel-api
+        app: add-sub-api
     spec:
       containers:
-      - image: lucasbarross/travel-api:latest
-        name: travel-api
+      - image: zaulao/add-sub-api
+        name: add-sub-api
         ports:
-        - containerPort: 8080
+        - containerPort: 5000
           name: http
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: travel-api
+  name: add-sub-api
   namespace: default
   labels:
-    service: travel-api
+    service: add-sub-api
 spec:
   ports:
-  - port: 8080
+  - port: 5000
     protocol: TCP
   selector:
-    app: travel-api
+    app: add-sub-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: multiply-division-api
+  name: multiply-division-api
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: multiply-division-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: multiply-division-api
+    spec:
+      containers:
+      - image: zaulao/multiply-division-api
+        name: multiply-division-api
+        ports:
+        - containerPort: 5001
+          name: http-auth
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: multiply-division-api
+  namespace: default
+  labels:
+    service: multiply-division-api
+spec:
+  ports:
+  - port: 5001
+    protocol: TCP
+  selector:
+    app: multiply-division-api
 ```
 
-O mais importante de se notar aqui é que o Deployment é responsável por indicar qual imagem Docker nossos pods irão baixar e executar (lucasbarross/travel-api), enquanto o Service indicará em qual porta nosso serviço irá escutar (nesse caso, 8080, já que é a que colocamos no código Python).
+O mais importante de se notar aqui é que o Deployment é responsável por indicar qual imagem Docker nossos pods irão baixar e executar, enquanto o Service indicará em qual porta nosso serviço irá escutar (nesse caso, as portas estão indicadas no código das nossas APIs).
 
 Após criar o arquivo, vamos aplicar essas configurações em nosso cluster Kubernetes rodando o seguinte comando:
 
@@ -188,35 +199,74 @@ Para verificar se tudo deu certo, rode o comando
 E deve ser retornado algo parecido com:
 
 ```
-NAME                          READY   STATUS              RESTARTS   AGE
-travel-api-666d8db574-z6pjp   0/1     ContainerCreating   0          9s
+NAME                                     READY   STATUS              RESTARTS   AGE
+add-sub-api-79968f5d6d-vxdvc             0/1     ContainerCreating   0          39s
+multiply-division-api-847bb69d9d-ldqwg   0/1     ContainerCreating   0          79s
 ```
 
-Quando você rodar o comando `kubectl get pods` depois de um tempo e o status mudar para "Running", isso significa que o serviço está de pé.
+Quando você rodar o comando `kubectl get pods` depois de um tempo e o status mudar para "Running", isso significa que os serviços estão de pé.
+
+```
+NAME                                     READY   STATUS    RESTARTS   AGE
+add-sub-api-79968f5d6d-vxdvc             1/1     Running   0          5m50s
+multiply-division-api-847bb69d9d-ldqwg   1/1     Running   0          6m30s
+```
+
+**PS**. É possível que demore cerca de alguns minutos para subir os serviços (status ficar indicado como "Running"). Tenha paciência! :P
 
 ### Virtual Services
 
 Agora que temos um serviço para exemplo, vamos começar a brincar com o Gloo!
 
-O Gloo fornece um tipo de configuração chamada Virtual Service. Através dela, mapeamos rotas a serviços, fazemos transformações na requests, configuramos autenticação/autorização das rotas, entre outras configurações [https://docs.solo.io/gloo/latest/reference/api/github.com/solo-io/gloo/projects/gateway/api/v1/virtual_service.proto.sk/]. Vamos começar definindo a rota da nossa API de viagens para conseguirmos acessá-la astravés do Gloo. Para isso, vamos utilizar o comando:
+O Gloo fornece um tipo de configuração chamada Virtual Service. Através dela, mapeamos rotas a serviços, fazemos transformações na requests, configuramos autenticação/autorização das rotas, entre outras configurações [https://docs.solo.io/gloo/latest/reference/api/github.com/solo-io/gloo/projects/gateway/api/v1/virtual_service.proto.sk/]. Vamos começar definindo uma das rotas de um dos serviços da calculadora, digitando o comando a seguir:
 
 ```
 glooctl add route \
-  --path-prefix /api/travels \
-  --dest-name default-travel-api-8080 \
+  --path-prefix /api/multdiv \
+  --prefix-rewrite / \
+  --dest-name default-multiply-division-api-5001
 ```
 
-O comando indica que para toda requisição que possui o prefixo `/api/travels`, essa requisição será direcionada para o serviço especificado no parâmetro  `--dest-name`. Nós especificamos o `--dest-name` como `default-travel-api-8080` porque para o Gloo identificar nosso serviço `travel-api`, ele utiliza o chamado Service Discovery, que permite encontrar serviços que estão no mesmo cluster. Precisamos apenas passar o endereço do serviço no formato `namespace-serviço-porta`, que em nosso caso, é namespace `default`, serviço `travel-api` e porta `8080`. Tudo isso foi configurado no arquivo `configuration.yml`.
+O comando indica que para toda requisição que possui o prefixo `/api/multdiv`, essa requisição será direcionada para o serviço especificado no parâmetro  `--dest-name`. Nós especificamos o `--dest-name` como `default-multiply-division-api-5001` porque para o Gloo identificar nosso serviço `multiply-division-api`, ele utiliza o chamado Service Discovery, que permite encontrar serviços que estão no mesmo cluster. Precisamos apenas passar o endereço do serviço no formato `namespace-serviço-porta`, que em nosso caso, é namespace `default`, serviço `multiply-division-api` e porta `5001`. Tudo isso foi configurado no arquivo `configuration.yml` que apresentamos a você na etapa anterior deste tutorial. 
 
-Feito isso, podemos testar mandando uma requisição para o Gloo em uma das rotas, como:
+Nesse comando nós também utilizamos uma das funcionalidades de gerenciamento de tráfego do Gloo, o "prefix-rewrite", que vai fazer com que toda request que chegue no serviço, ao invés de chegar no path `/api/multdiv`, chegará com o restante do path. Exemplo: `/api/multdiv/multiply` chegará como `/multiply` na api `multiply-division-api`.
 
-`curl $(glooctl proxy url)/api/travels/1`
+Feito isso, podemos testar mandando uma requisição para o Envoy em uma das rotas. Para descobrir qual o endereço do Envoy, estaremos utilizando o valor retornado pelo comando `glooctl proxy url`. O comando da requisição deve ser parecido com:
+
+```curl --header "Content-Type: application/json" \
+  --request POST \
+  --data '{"x":"10","y":"20"}' \
+  $(glooctl proxy url)/api/multdiv/multiply
+```
 
 Isso deve retornar 
 
-`{"id": 1, "price": "3200"}`                                                                                                                                                         
+```{
+  "Message": 200, 
+  "Status code": 200
+}
+```                                                                                                                                                         
 
-Sua requisição passou pelo Envoy e foi roteada para o serviço correto (nossa travel-api). Para manter o escopo desse tutorial, não iremos instanciar outros serviços, mas é possível perceber como isso se aplicaria em um contexto real de microserviçós, onde vários serviços são utilizados para retornar informações para clientes, e através do Gloo, temos essa única porta de entrada, através do virtual service, que roteia nossos serviços. Isso tudo utilizando Service Discovery, evitando os malefícios de utilização de DNS em um ambiente efêmero como Kubernetes.
+Sua requisição passou pelo Envoy e foi roteada para o serviço correto (multiply-division-api). Podemos adicionar agora uma rota para o serviço de adição e subtração, com um comando parecido com o anterior:
+
+```
+glooctl add route \
+  --path-prefix /api/addsub \
+  --prefix-rewrite / \
+  --dest-name default-add-sub-api-5000
+```
+
+Para testar, basta mandar uma requisição:
+
+```curl --header "Content-Type: application/json" \
+  --request POST \
+  --data '{"x":"10","y":"20"}' \
+  $(glooctl proxy url)/api/addsub/add
+```
+
+E pronto, as duas APIs de nossa calculadora estão sendo expostas por uma única URL, como se fossem apenas um serviço!
+
+Através desse exemplo, é possível perceber como isso se aplicaria em um contexto real de microserviços, onde vários serviços são utilizados para retornar informações para clientes, e através do Gloo, temos essa única porta de entrada que roteia nossas requisições para o serviço correto, facilitando bastante para o cliente da API. Outro ponto é que isso tudo é feito utilizando Service Discovery, evitando os malefícios de utilização de DNS em um ambiente efêmero como Kubernetes.
 
 ### Autenticação e autorização
 
